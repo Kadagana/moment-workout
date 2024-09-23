@@ -1,10 +1,12 @@
-import { Image, StyleSheet, Button, TextInput, Alert, Picker } from 'react-native';
+import { Image, StyleSheet, Button, TextInput, Alert } from 'react-native';
 import React, { useState, useEffect } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import {color} from "ansi-fragments";
 
 export default function HomeScreen() {
     const [weeks, setWeeks] = useState(['Sep 24', 'Sep 17', 'Sep 10']); // Example weeks
@@ -121,7 +123,7 @@ export default function HomeScreen() {
             </ThemedView>
 
             {/* Show working sets for selected week */}
-            <ThemedView style={styles.setsContainer}>
+
                 <ThemedText type="subtitle">Working Sets for {selectedWeek}</ThemedText>
                 {workingSets.map((item, index) => (
                     <ThemedView key={index} style={styles.setItem}>
@@ -134,7 +136,7 @@ export default function HomeScreen() {
                         />
                     </ThemedView>
                 ))}
-            </ThemedView>
+
 
             {/* Add new muscle group */}
             <ThemedView style={styles.inputContainer}>
@@ -167,6 +169,7 @@ const styles = StyleSheet.create({
     setsContainer: {
         padding: 16,
         backgroundColor: '#fff',
+        color: 'black',
     },
     setItem: {
         flexDirection: 'row',
@@ -183,6 +186,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 5,
         textAlign: 'center',
+        color: 'white',
     },
     picker: {
         height: 50,
@@ -198,6 +202,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 5,
         marginBottom: 8,
+        color: 'white',
     },
     reactLogo: {
         height: 178,
