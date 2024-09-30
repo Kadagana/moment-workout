@@ -1,76 +1,59 @@
-import { Image, StyleSheet, Button, TextInput, Alert } from 'react-native';
+import { Image, StyleSheet, Button, TextInput, Alert, Platform } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { insertData, getWeekData } from '../../backend/async';  // Use AsyncStorage functions
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import {color} from "ansi-fragments";
+import { Picker } from '@react-native-picker/picker';
 
 export default function HomeScreen() {
     const [weeks, setWeeks] = useState(['Sep 24', 'Sep 17', 'Sep 10']); // Example weeks
     const [selectedWeek, setSelectedWeek] = useState('Sep 24'); // Default selected week
-    const [weekData, setWeekData] = useState({});
-    const [workingSets, setWorkingSets] = useState([
-        { muscle: 'Quadriceps', sets: 4 },
-        { muscle: 'Hamstrings', sets: 3 },
-        { muscle: 'Glutes', sets: 2 },
-        { muscle: 'Chest', sets: 6 },
-        { muscle: 'Shoulders', sets: 2 },
-        { muscle: 'Back', sets: 8 },
-        { muscle: 'Biceps', sets: 2 },
-        { muscle: 'Triceps', sets: 3 },
-        { muscle: 'Forearms', sets: 3 },
-        { muscle: 'Abs', sets: 1 },
-    ]);
+    const [workingSets, setWorkingSets] = useState([]); // Working sets per week
 
     const [newMuscle, setNewMuscle] = useState('');
     const [newSets, setNewSets] = useState('');
 
-    // Load week data from AsyncStorage when component mounts
+    // Load week data when the component mounts
     useEffect(() => {
-        getSavedData();
-    }, []);
+        loadWeekData(selectedWeek);  // Load the data for the default selected week
+    }, [selectedWeek]);
 
-    // Fetch the saved data for all weeks
-    const getSavedData = async () => {
+    // Load week data from AsyncStorage
+    const loadWeekData = async (week) => {
         try {
-            const savedWeekData = await AsyncStorage.getItem('weekData');
-            if (savedWeekData !== null) {
-                const parsedData = JSON.parse(savedWeekData);
-                setWeekData(parsedData);
-                // Load the data for the selected week
-                if (parsedData[selectedWeek]) {
-                    setWorkingSets(parsedData[selectedWeek]);
+            getWeekData(week, (data) => {
+                if (data.length > 0) {
+                    setWorkingSets(data);  // Load existing data if available
+                } else {
+                    setWorkingSets([]);  // Otherwise, reset the working sets
                 }
-            }
+            });
         } catch (error) {
-            console.error("Error loading data", error);
+            console.error("Error loading week data:", error);
         }
     };
 
-    // Save data for the selected week
+    // Save data for the current week
     const saveData = async () => {
-        const updatedWeekData = { ...weekData, [selectedWeek]: workingSets };
         try {
-            await AsyncStorage.setItem('weekData', JSON.stringify(updatedWeekData));
-            setWeekData(updatedWeekData); // Update the week data in state
+            await insertData(selectedWeek, workingSets);
+            console.log('Data saved successfully.');
         } catch (error) {
-            console.error("Error saving data", error);
+            console.error('Error saving data:', error);
         }
     };
 
-    // Update set count for a muscle
+    // Update set count for a muscle in the UI and save
     const updateSet = (muscle, newSetCount) => {
         const updatedSets = workingSets.map((item) =>
             item.muscle === muscle ? { ...item, sets: newSetCount } : item
         );
         setWorkingSets(updatedSets);
-        saveData(); // Save data after updating
+        saveData();  // Save updated data
     };
 
-    // Add a new muscle group
+    // Add a new muscle group and save it
     const addMuscleGroup = () => {
         if (!newMuscle || !newSets || isNaN(newSets)) {
             Alert.alert('Please enter a valid muscle group and set count.');
@@ -80,22 +63,16 @@ export default function HomeScreen() {
         const newGroup = { muscle: newMuscle, sets: parseInt(newSets) };
         const updatedSets = [...workingSets, newGroup];
         setWorkingSets(updatedSets);
-        saveData(); // Save new data after adding
-        setNewMuscle(''); // Clear input fields
+        saveData();  // Save the new data
+        setNewMuscle('');  // Clear input fields
         setNewSets('');
     };
 
-    // Handle week change and load corresponding data
+    // Handle week change and load corresponding data from AsyncStorage
     const handleWeekChange = (week) => {
-        // Save current week's data before switching
-        saveData();
+        saveData();  // Save current week's data before switching
         setSelectedWeek(week);
-        // Load new week's data if available, otherwise reset to empty
-        if (weekData[week]) {
-            setWorkingSets(weekData[week]);
-        } else {
-            setWorkingSets([]); // No data for the week, show empty state
-        }
+        loadWeekData(week);  // Load the data for the new week
     };
 
     return (
@@ -123,7 +100,7 @@ export default function HomeScreen() {
             </ThemedView>
 
             {/* Show working sets for selected week */}
-
+            <ThemedView>
                 <ThemedText type="subtitle">Working Sets for {selectedWeek}</ThemedText>
                 {workingSets.map((item, index) => (
                     <ThemedView key={index} style={styles.setItem}>
@@ -136,7 +113,7 @@ export default function HomeScreen() {
                         />
                     </ThemedView>
                 ))}
-
+            </ThemedView>
 
             {/* Add new muscle group */}
             <ThemedView style={styles.inputContainer}>
@@ -165,11 +142,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         marginBottom: 16,
-    },
-    setsContainer: {
-        padding: 16,
-        backgroundColor: '#fff',
-        color: 'black',
     },
     setItem: {
         flexDirection: 'row',
@@ -209,6 +181,6 @@ const styles = StyleSheet.create({
         width: 1525,
         bottom: 0,
         left: 0,
-        position: 'static' ,
+        position: 'static',
     },
 });
