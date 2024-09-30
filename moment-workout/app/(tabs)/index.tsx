@@ -1,23 +1,36 @@
-import { Image, StyleSheet, Button, TextInput, Alert, Platform } from 'react-native';
+import { Image, StyleSheet, Button, TextInput, Alert, Platform, View , Text} from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { insertData, getWeekData } from '../../backend/async';  // Use AsyncStorage functions
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function HomeScreen() {
-    const [weeks, setWeeks] = useState(['Sep 24', 'Sep 17', 'Sep 10']); // Example weeks
-    const [selectedWeek, setSelectedWeek] = useState('Sep 24'); // Default selected week
-    const [workingSets, setWorkingSets] = useState([]); // Working sets per week
+    const [selectedDate, setSelectedDate] = useState(new Date());  // Default to current date
+    const [showPicker, setShowPicker] = useState(false);  // To control DateTimePicker visibility
+    const [weekLabel, setWeekLabel] = useState('');  // Displayed week label
 
+    const [workingSets, setWorkingSets] = useState([]);  // Working sets per week
     const [newMuscle, setNewMuscle] = useState('');
     const [newSets, setNewSets] = useState('');
 
-    // Load week data when the component mounts
+    // Function to get the start of the week (Monday)
+    const getWeekLabel = (date) => {
+        const monday = new Date(date);
+        const day = monday.getDay();
+        const diff = monday.getDate() - day + (day === 0 ? -6 : 1);  // Adjust when day is Sunday
+        monday.setDate(diff);
+        const options = { month: 'short', day: 'numeric' };
+        return monday.toLocaleDateString('en-US', options);  // Format as "Sep 24"
+    };
+
+    // Update the week label when the date changes
     useEffect(() => {
-        loadWeekData(selectedWeek);  // Load the data for the default selected week
-    }, [selectedWeek]);
+        console.log('Date updated:', selectedDate);  // Debug log
+        setWeekLabel(getWeekLabel(selectedDate));
+        loadWeekData(getWeekLabel(selectedDate));
+    }, [selectedDate]);
 
     // Load week data from AsyncStorage
     const loadWeekData = async (week) => {
@@ -37,7 +50,7 @@ export default function HomeScreen() {
     // Save data for the current week
     const saveData = async () => {
         try {
-            await insertData(selectedWeek, workingSets);
+            await insertData(weekLabel, workingSets);
             console.log('Data saved successfully.');
         } catch (error) {
             console.error('Error saving data:', error);
@@ -68,11 +81,18 @@ export default function HomeScreen() {
         setNewSets('');
     };
 
-    // Handle week change and load corresponding data from AsyncStorage
-    const handleWeekChange = (week) => {
-        saveData();  // Save current week's data before switching
-        setSelectedWeek(week);
-        loadWeekData(week);  // Load the data for the new week
+    // Show the DateTimePicker for selecting a week
+    const showDatePicker = () => {
+        setShowPicker(true);
+    };
+
+    // Handle date selection on iOS
+    const onDateChange = (event, date) => {
+        if (date) {
+            setSelectedDate(date);
+            setWeekLabel(getWeekLabel(date)); // Update week label when date changes
+        }
+        setShowPicker(false); // Hide picker after selection
     };
 
     return (
@@ -87,21 +107,24 @@ export default function HomeScreen() {
         >
             {/* Picker to select week */}
             <ThemedView style={styles.titleContainer}>
-                <ThemedText type="title">Select Week:</ThemedText>
-                <Picker
-                    selectedValue={selectedWeek}
-                    style={styles.picker}
-                    onValueChange={(itemValue) => handleWeekChange(itemValue)}
-                >
-                    {weeks.map((week, index) => (
-                        <Picker.Item key={index} label={week} value={week} />
-                    ))}
-                </Picker>
+                <ThemedText type="title">Select Week: {weekLabel}</ThemedText>
+                <Button title="Select Date" onPress={showDatePicker} />
+
+                {/* Show the DateTimePicker */}
+                {showPicker && (
+                    <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={onDateChange}
+                        style={{ width: '100%', backgroundColor: 'white' }}  // Style adjustment for visibility
+                    />
+                )}
             </ThemedView>
 
             {/* Show working sets for selected week */}
             <ThemedView>
-                <ThemedText type="subtitle">Working Sets for {selectedWeek}</ThemedText>
+                <ThemedText type="subtitle">Working Sets for Week Starting {weekLabel}</ThemedText>
                 {workingSets.map((item, index) => (
                     <ThemedView key={index} style={styles.setItem}>
                         <ThemedText>{item.muscle}</ThemedText>
@@ -132,7 +155,26 @@ export default function HomeScreen() {
                 />
                 <Button title="Add Muscle Group" onPress={addMuscleGroup} />
             </ThemedView>
+            <View style={{ padding: 20 }}>
+                {/* Show the current week starting date */}
+                <Text style={{ marginBottom: 10 }}>Week Starting: {weekLabel || getWeekLabel(selectedDate)}</Text>
+
+                {/* Button to show DateTimePicker */}
+                <Button title="Select Week" onPress={() => setShowPicker(true)} />
+
+                {/* DateTimePicker for iOS/Android */}
+                {showPicker && (
+                    <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={onDateChange}
+                        style={{ width: '100%' }}
+                    />
+                )}
+            </View>
         </ParallaxScrollView>
+
     );
 }
 
@@ -159,10 +201,6 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         textAlign: 'center',
         color: 'white',
-    },
-    picker: {
-        height: 50,
-        width: 150,
     },
     inputContainer: {
         marginTop: 16,
