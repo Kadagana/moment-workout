@@ -86,6 +86,7 @@ export default function HomeScreen() {
     };
 
     const onSaveDate = () => {
+        saveData();
         setSelectedDate(tempSelectedDate);
         setShowPicker(false);
     };
