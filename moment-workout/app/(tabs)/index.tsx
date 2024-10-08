@@ -18,10 +18,10 @@ export default function HomeScreen() {
     const getWeekLabel = (date) => {
         const monday = new Date(date);
         const day = monday.getDay();
-        const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+        const diff = monday.getDate() - day + (day === 0 ? -6 : 1); // Get Monday of the week
         monday.setDate(diff);
-        const options = { month: 'short', day: 'numeric' };
-        return monday.toLocaleDateString('en-US', options);
+        const options = { year: 'numeric', month: 'short', day: 'numeric' }; // Include year in the format
+        return monday.toLocaleDateString('en-US', options); // Format as 'Jan 1, 2023'
     };
 
     useEffect(() => {
@@ -44,11 +44,13 @@ export default function HomeScreen() {
         }
     };
 
-    const saveData = async () => {
+    // Separate function to save muscle groups
+    const saveMuscleGroups = async (updatedSets) => {
         try {
-            await insertData(weekLabel, workingSets);
+            console.log(`Saving muscle groups for week: ${weekLabel}`, updatedSets);
+            await insertData(weekLabel, updatedSets); // Save muscle groups to the selected week
         } catch (error) {
-            console.error('Error saving data:', error);
+            console.error('Error saving muscle groups:', error);
         }
     };
 
@@ -57,7 +59,7 @@ export default function HomeScreen() {
             item.muscle === muscle ? { ...item, sets: newSetCount } : item
         );
         setWorkingSets(updatedSets);
-        saveData();
+        saveMuscleGroups(updatedSets); // Save muscle groups when updated
     };
 
     const addMuscleGroup = () => {
@@ -69,7 +71,7 @@ export default function HomeScreen() {
         const newGroup = { muscle: newMuscle, sets: parseInt(newSets) };
         const updatedSets = [...workingSets, newGroup];
         setWorkingSets(updatedSets);
-        saveData();
+        saveMuscleGroups(updatedSets); // Save muscle groups immediately after adding a new one
         setNewMuscle('');
         setNewSets('');
     };
@@ -86,7 +88,6 @@ export default function HomeScreen() {
     };
 
     const onSaveDate = () => {
-        saveData();
         setSelectedDate(tempSelectedDate);
         setShowPicker(false);
     };
