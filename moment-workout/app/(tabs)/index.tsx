@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Button, TextInput, Alert, Platform, View, Text } from 'react-native';
 import React, { useState, useEffect } from 'react';
-import { insertData, getWeekData } from '../../backend/async';
+import { insertData, getWeekData } from '@/backend/async';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -18,10 +18,10 @@ export default function HomeScreen() {
     const getWeekLabel = (date) => {
         const monday = new Date(date);
         const day = monday.getDay();
-        const diff = monday.getDate() - day + (day === 0 ? -6 : 1); // Get Monday of the week
+        const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
         monday.setDate(diff);
         const options = { year: 'numeric', month: 'short', day: 'numeric' }; // Include year in the format
-        return monday.toLocaleDateString('en-US', options); // Format as 'Jan 1, 2023'
+        return monday.toLocaleDateString('en-US', options);
     };
 
     useEffect(() => {
@@ -44,11 +44,10 @@ export default function HomeScreen() {
         }
     };
 
-    // Separate function to save muscle groups
     const saveMuscleGroups = async (updatedSets) => {
         try {
             console.log(`Saving muscle groups for week: ${weekLabel}`, updatedSets);
-            await insertData(weekLabel, updatedSets); // Save muscle groups to the selected week
+            await insertData(weekLabel, updatedSets);
         } catch (error) {
             console.error('Error saving muscle groups:', error);
         }
@@ -59,7 +58,7 @@ export default function HomeScreen() {
             item.muscle === muscle ? { ...item, sets: newSetCount } : item
         );
         setWorkingSets(updatedSets);
-        saveMuscleGroups(updatedSets); // Save muscle groups when updated
+        saveMuscleGroups(updatedSets);
     };
 
     const addMuscleGroup = () => {
@@ -71,7 +70,7 @@ export default function HomeScreen() {
         const newGroup = { muscle: newMuscle, sets: parseInt(newSets) };
         const updatedSets = [...workingSets, newGroup];
         setWorkingSets(updatedSets);
-        saveMuscleGroups(updatedSets); // Save muscle groups immediately after adding a new one
+        saveMuscleGroups(updatedSets);
         setNewMuscle('');
         setNewSets('');
     };
