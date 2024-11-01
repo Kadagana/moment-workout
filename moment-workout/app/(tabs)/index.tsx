@@ -7,28 +7,36 @@ import { ThemedView } from '@/components/ThemedView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
-
+// Define the type for each muscle set
+type WorkingSet = {
+    muscle: string;
+    sets: number;
+};
 export default function HomeScreen() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [tempSelectedDate, setTempSelectedDate] = useState(new Date());
     const [showPicker, setShowPicker] = useState(false);
     const [weekLabel, setWeekLabel] = useState('');
-    const [workingSets, setWorkingSets] = useState([]);
+    const [workingSets, setWorkingSets] = useState<WorkingSet[]>([]);
     const [newSets, setNewSets] = useState('');
     const [selectedMuscle, setSelectedMuscle] = useState(''); // For dropdown selection
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
 
-    // Predefined list of muscles
-    const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Legs', 'Arms', 'Abs'];
 
-    const getWeekLabel = (date) => {
+    // Predefined list of muscles
+    const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Quadriceps', 'Biceps', 'Abs', 'Triceps', 'Hamstrings', 'Glutes', 'Calves'];
+
+    const getWeekLabel = (date: any): string => {
         const monday = new Date(date);
         const day = monday.getDay();
         const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
         monday.setDate(diff);
-        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+
+        // Specify types correctly for year, month, and day
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         return monday.toLocaleDateString('en-US', options);
     };
+
 
     useEffect(() => {
         const label = getWeekLabel(selectedDate);
@@ -36,9 +44,9 @@ export default function HomeScreen() {
         loadWeekData(label);
     }, [selectedDate]);
 
-    const loadWeekData = async (week) => {
+    const loadWeekData = async (week : any) => {
         try {
-            getWeekData(week, (data) => {
+            getWeekData(week, (data : any) => {
                 if (data.length > 0) {
                     setWorkingSets(data);
                 } else {
@@ -50,7 +58,7 @@ export default function HomeScreen() {
         }
     };
 
-    const saveMuscleGroups = async (updatedSets) => {
+    const saveMuscleGroups = async (updatedSets : any) => {
         try {
             console.log(`Saving muscle groups for week: ${weekLabel}`, updatedSets);
             await insertData(weekLabel, updatedSets);
@@ -59,7 +67,8 @@ export default function HomeScreen() {
         }
     };
 
-    const updateSet = (muscle, newSetCount) => {
+    // Updates the set count for a specific muscle group.
+    const updateSet = (muscle: string, newSetCount: number): void => {
         const updatedSets = workingSets.map((item) =>
             item.muscle === muscle ? { ...item, sets: newSetCount } : item
         );
@@ -68,10 +77,14 @@ export default function HomeScreen() {
     };
 
     const addMuscleGroup = () => {
-        if (!selectedMuscle || !newSets || isNaN(newSets)) {
+        // Convert newSets to a number to check if it's a valid number
+        const setsNumber = Number(newSets);
+
+        if (!selectedMuscle || !newSets || isNaN(setsNumber)) {
             Alert.alert('Please select a valid muscle group and set count.');
             return;
         }
+
         const muscleExists = workingSets.some((item) => item.muscle === selectedMuscle);
 
         if (muscleExists) {
@@ -79,7 +92,8 @@ export default function HomeScreen() {
             return; // Prevent adding the muscle again
         }
 
-        const newGroup = { muscle: selectedMuscle, sets: parseInt(newSets) };
+        // Use setsNumber for the number of sets
+        const newGroup = { muscle: selectedMuscle, sets: setsNumber };
         const updatedSets = [...workingSets, newGroup];
         setWorkingSets(updatedSets);
         saveMuscleGroups(updatedSets);
@@ -90,18 +104,20 @@ export default function HomeScreen() {
         setIsMusclePickerVisible(false);
     };
 
+
     const showDatePicker = () => {
         setShowPicker(true);
         setTempSelectedDate(selectedDate);
     };
 
-    const deleteMuscleGroup = (muscle) => {
+    // Deletes a muscle group from the working sets.
+    const deleteMuscleGroup = (muscle: string): void => {
         const updatedSets = workingSets.filter((item) => item.muscle !== muscle);
         setWorkingSets(updatedSets);
         saveMuscleGroups(updatedSets);
     };
 
-    const renderRightActions = (muscle) => (
+    const renderRightActions = (muscle : any) => (
         <View style={styles.deleteButton}>
             <TouchableOpacity onPress={() => deleteMuscleGroup(muscle)}>
                 <Text style={styles.deleteButtonText}>Delete</Text>
@@ -109,7 +125,7 @@ export default function HomeScreen() {
         </View>
     );
 
-    const onDateChange = (event, date) => {
+    const onDateChange = (event: any, date: any) => {
         if (date) {
             setTempSelectedDate(date);
         }
