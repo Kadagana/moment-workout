@@ -1,4 +1,16 @@
-import { Image, StyleSheet, Button, TextInput, Alert, Platform, View, Text, Modal, TouchableOpacity } from 'react-native';
+import {
+    Image,
+    StyleSheet,
+    Button,
+    TextInput,
+    Alert,
+    Platform,
+    View,
+    Text,
+    Modal,
+    TouchableOpacity,
+    ScrollView
+} from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { insertData, getWeekData } from '@/backend/async';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -7,6 +19,9 @@ import { ThemedView } from '@/components/ThemedView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LineChart } from 'react-native-chart-kit';
+import { Dimensions } from 'react-native';
+const screenWidth = Dimensions.get("window").width;
 // Define the type for each muscle set
 type WorkingSet = {
     muscle: string;
@@ -21,8 +36,8 @@ export default function HomeScreen() {
     const [newSets, setNewSets] = useState('');
     const [selectedMuscle, setSelectedMuscle] = useState(''); // For dropdown selection
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
-
-
+    const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
+    const [selectedMuscleForChart, setSelectedMuscleForChart] = useState('');
     // Predefined list of muscles
     const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Quadriceps', 'Biceps', 'Abs', 'Triceps', 'Hamstrings', 'Glutes', 'Calves'];
 
@@ -36,6 +51,40 @@ export default function HomeScreen() {
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         return monday.toLocaleDateString('en-US', options);
     };
+    const loadChartData = async (muscle: string) => {
+        // Retrieve data for multiple weeks
+        const labels: string[] = [];
+        const setsData: number[] = [];
+
+        for (let i = 0; i < 20; i++) { // Example: iterate over the past 20 weeks
+            const date = new Date();
+            date.setDate(date.getDate() - i * 7); // Go back by weeks
+            const weekLabel = getWeekLabel(date);
+
+            // Load data for each week
+            const weeklyData = await new Promise<WorkingSet[]>((resolve) => {
+                getWeekData(weekLabel, (data) => resolve(data || []));
+            });
+
+            const muscleData = weeklyData.find((item) => item.muscle === muscle);
+            const sets = muscleData ? muscleData.sets : 0;
+
+            labels.unshift(weekLabel); // Add to labels
+            setsData.unshift(sets); // Add sets count
+        }
+
+        // Update the state for the chart
+        setChartData({
+            labels: labels,
+            datasets: [{ data: setsData }],
+        });
+    };
+
+    useEffect(() => {
+        if (selectedMuscleForChart) {
+            loadChartData(selectedMuscleForChart); // Load chart data when a muscle is selected
+        }
+    }, [selectedMuscleForChart, workingSets]);
 
 
     useEffect(() => {
@@ -151,6 +200,53 @@ export default function HomeScreen() {
                     />
                 }
             >
+                <ThemedView style={styles.titleContainer}>
+                    <ThemedText type="title">Select Muscle Group for Chart</ThemedText>
+                    <Picker
+                        selectedValue={selectedMuscleForChart}
+                        onValueChange={(itemValue) => setSelectedMuscleForChart(itemValue)}
+                        style={styles.picker}
+                    >
+                        <Picker.Item label="Select Muscle Group" value="" />
+                        {muscleGroups.map((muscle, index) => (
+                            <Picker.Item key={index} label={muscle} value={muscle} />
+                        ))}
+                    </Picker>
+
+                    {selectedMuscleForChart ? (
+                        <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
+                            <LineChart
+                                data={chartData}
+                                width={screenWidth * 1.0} // Scrollable chart width
+                                height={220}
+                                chartConfig={{
+                                    backgroundColor: '#1e2923',
+                                    backgroundGradientFrom: '#08130D',
+                                    backgroundGradientTo: '#1F4203',
+                                    decimalPlaces: 0,
+                                    color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                                    style: {
+                                        borderRadius: 16,
+                                    },
+                                    propsForDots: {
+                                        r: '6',
+                                        strokeWidth: '2',
+                                        stroke: '#ffa726',
+                                    },
+                                }}
+                                style={{
+                                    marginVertical: 8,
+                                    borderRadius: 16,
+                                }}
+                            />
+                        </ScrollView>
+                    ) : (
+                        <Text style={{ textAlign: 'center', marginVertical: 20 }}>
+                            Select a muscle group to display data.
+                        </Text>
+                    )}
+                </ThemedView>
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Week: {weekLabel}</ThemedText>
                     <View style={styles.buttonContainer}>
