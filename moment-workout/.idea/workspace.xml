@@ -5,8 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7e062db9-283e-4e73-8d77-1aed0a4e7474" name="Changes" comment="MORE">
+      <change beforePath="$PROJECT_DIR$/../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/(tabs)/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(tabs)/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/Podfile" beforeDir="false" afterPath="$PROJECT_DIR$/ios/Podfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/Podfile.properties.json" beforeDir="false" afterPath="$PROJECT_DIR$/ios/Podfile.properties.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout.xcodeproj/project.pbxproj" beforeDir="false" afterPath="$PROJECT_DIR$/ios/momentworkout.xcodeproj/project.pbxproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout/Images.xcassets/SplashScreen.imageset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout/Images.xcassets/SplashScreen.imageset/image.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout/Images.xcassets/SplashScreenBackground.imageset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout/Images.xcassets/SplashScreenBackground.imageset/image.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/ios/momentworkout/Info.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ios/momentworkout/SplashScreen.storyboard" beforeDir="false" afterPath="$PROJECT_DIR$/ios/momentworkout/SplashScreen.storyboard" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
@@ -19,6 +30,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="JavaScript File" />
+        <option value="TypeScript JSX File" />
       </list>
     </option>
   </component>
@@ -37,6 +49,9 @@
     &quot;accountId&quot;: &quot;f6b9eb8d-3999-4f43-ad59-3a9acfe01939&quot;
   }
 }</component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -48,21 +63,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "HomePage",
-    "last_opened_file_path": "/Users/kobiemagana/Desktop/WebStormProjects/ReactNativeApp/moment-workout/assets/images",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "ts.external.directory.path": "/Users/kobiemagana/Desktop/WebStormProjects/ReactNativeApp/moment-workout/node_modules/typescript/lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/kobiemagana/WebstormProjects/moment/moment-workout&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/kobiemagana/WebstormProjects/moment/moment-workout/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/assets/images" />
@@ -86,6 +102,11 @@
       <workItem from="1724864460806" duration="7325000" />
       <workItem from="1726807008590" duration="8036000" />
       <workItem from="1727480284726" duration="10859000" />
+      <workItem from="1728327265677" duration="120000" />
+      <workItem from="1728414516361" duration="14066000" />
+      <workItem from="1730492590939" duration="2046000" />
+      <workItem from="1730747703782" duration="5933000" />
+      <workItem from="1730910487550" duration="6572000" />
     </task>
     <task id="LOCAL-00001" summary="MORE">
       <option name="closed" value="true" />

@@ -17,16 +17,18 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LineChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
+
 const screenWidth = Dimensions.get("window").width;
+
 // Define the type for each muscle set
 type WorkingSet = {
     muscle: string;
     sets: number;
 };
+
 export default function HomeScreen() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [tempSelectedDate, setTempSelectedDate] = useState(new Date());
@@ -46,8 +48,6 @@ export default function HomeScreen() {
         const day = monday.getDay();
         const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
         monday.setDate(diff);
-
-        // Specify types correctly for year, month, and day
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         return monday.toLocaleDateString('en-US', options);
     };
@@ -86,16 +86,15 @@ export default function HomeScreen() {
         }
     }, [selectedMuscleForChart, workingSets]);
 
-
     useEffect(() => {
         const label = getWeekLabel(selectedDate);
         setWeekLabel(label);
         loadWeekData(label);
     }, [selectedDate]);
 
-    const loadWeekData = async (week : any) => {
+    const loadWeekData = async (week: any) => {
         try {
-            getWeekData(week, (data : any) => {
+            getWeekData(week, (data: any) => {
                 if (data.length > 0) {
                     setWorkingSets(data);
                 } else {
@@ -107,7 +106,7 @@ export default function HomeScreen() {
         }
     };
 
-    const saveMuscleGroups = async (updatedSets : any) => {
+    const saveMuscleGroups = async (updatedSets: any) => {
         try {
             console.log(`Saving muscle groups for week: ${weekLabel}`, updatedSets);
             await insertData(weekLabel, updatedSets);
@@ -116,7 +115,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Updates the set count for a specific muscle group.
     const updateSet = (muscle: string, newSetCount: number): void => {
         const updatedSets = workingSets.map((item) =>
             item.muscle === muscle ? { ...item, sets: newSetCount } : item
@@ -126,47 +124,37 @@ export default function HomeScreen() {
     };
 
     const addMuscleGroup = () => {
-        // Convert newSets to a number to check if it's a valid number
         const setsNumber = Number(newSets);
-
         if (!selectedMuscle || !newSets || isNaN(setsNumber)) {
             Alert.alert('Please select a valid muscle group and set count.');
             return;
         }
-
         const muscleExists = workingSets.some((item) => item.muscle === selectedMuscle);
-
         if (muscleExists) {
             Alert.alert('This muscle group has already been added.');
             return; // Prevent adding the muscle again
         }
-
-        // Use setsNumber for the number of sets
         const newGroup = { muscle: selectedMuscle, sets: setsNumber };
         const updatedSets = [...workingSets, newGroup];
         setWorkingSets(updatedSets);
         saveMuscleGroups(updatedSets);
-
-        // Reset inputs
         setNewSets('');
         setSelectedMuscle('');
         setIsMusclePickerVisible(false);
     };
-
 
     const showDatePicker = () => {
         setShowPicker(true);
         setTempSelectedDate(selectedDate);
     };
 
-    // Deletes a muscle group from the working sets.
     const deleteMuscleGroup = (muscle: string): void => {
         const updatedSets = workingSets.filter((item) => item.muscle !== muscle);
         setWorkingSets(updatedSets);
         saveMuscleGroups(updatedSets);
     };
 
-    const renderRightActions = (muscle : any) => (
+    const renderRightActions = (muscle: any) => (
         <View style={styles.deleteButton}>
             <TouchableOpacity onPress={() => deleteMuscleGroup(muscle)}>
                 <Text style={styles.deleteButtonText}>Delete</Text>
@@ -189,6 +177,45 @@ export default function HomeScreen() {
         setIsMusclePickerVisible(true);
     };
 
+    const CustomDropdown = ({ items, selectedValue, onValueChange }) => {
+        const [isVisible, setIsVisible] = useState(false);
+
+        return (
+            <View style={{ marginVertical: 10 }}>
+                <TouchableOpacity onPress={() => setIsVisible(true)} style={styles.dropdownButton}>
+                    <Text style={styles.dropdownButtonText}>{selectedValue || 'Select an option'}</Text>
+                </TouchableOpacity>
+                {isVisible && (
+                    <Modal
+                        transparent={true}
+                        animationType="slide"
+                        onRequestClose={() => setIsVisible(false)}
+                    >
+                        <View style={styles.modalContainer}>
+                            <View style={styles.dropdownList}>
+                                {items.map((item, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        onPress={() => {
+                                            onValueChange(item);
+                                            setIsVisible(false);
+                                        }}
+                                        style={styles.dropdownItem}
+                                    >
+                                        <Text style={styles.dropdownItemText}>{item}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                <TouchableOpacity onPress={() => setIsVisible(false)}>
+                                    <Text style={styles.closeButton}>Close</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                )}
+            </View>
+        );
+    };
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ParallaxScrollView
@@ -202,16 +229,11 @@ export default function HomeScreen() {
             >
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Muscle Group for Chart</ThemedText>
-                    <Picker
+                    <CustomDropdown
+                        items={muscleGroups}
                         selectedValue={selectedMuscleForChart}
-                        onValueChange={(itemValue) => setSelectedMuscleForChart(itemValue)}
-                        style={styles.picker}
-                    >
-                        <Picker.Item label="Select Muscle Group" value="" />
-                        {muscleGroups.map((muscle, index) => (
-                            <Picker.Item key={index} label={muscle} value={muscle} />
-                        ))}
-                    </Picker>
+                        onValueChange={setSelectedMuscleForChart}
+                    />
 
                     {selectedMuscleForChart ? (
                         <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
@@ -247,6 +269,7 @@ export default function HomeScreen() {
                         </Text>
                     )}
                 </ThemedView>
+
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Week: {weekLabel}</ThemedText>
                     <View style={styles.buttonContainer}>
@@ -314,8 +337,6 @@ export default function HomeScreen() {
                         onSubmitEditing={addMuscleGroup}
                     />
                     <Button title="Add Muscle Group" onPress={addMuscleGroup} />
-
-                    {/* Modal to show the Picker */}
                     <Modal
                         transparent={true}
                         visible={isMusclePickerVisible}
@@ -324,15 +345,11 @@ export default function HomeScreen() {
                     >
                         <View style={styles.modalContainer}>
                             <View style={styles.pickerContainer}>
-                                <Picker
+                                <CustomDropdown
+                                    items={muscleGroups}
                                     selectedValue={selectedMuscle}
-                                    onValueChange={(itemValue) => setSelectedMuscle(itemValue)}
-                                >
-                                    <Picker.Item label="Select Muscle Group" value="" />
-                                    {muscleGroups.map((muscle, index) => (
-                                        <Picker.Item key={index} label={muscle} value={muscle} />
-                                    ))}
-                                </Picker>
+                                    onValueChange={setSelectedMuscle}
+                                />
                                 <Button title="Done" onPress={() => setIsMusclePickerVisible(false)} />
                             </View>
                         </View>
@@ -344,6 +361,41 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+    dropdownButton: {
+        padding: 10,
+        backgroundColor: '#ccc',
+        borderRadius: 5,
+        alignItems: 'center',
+    },
+    dropdownButtonText: {
+        color: '#000',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    dropdownList: {
+        backgroundColor: '#fff',
+        margin: 20,
+        padding: 20,
+        borderRadius: 10,
+    },
+    dropdownItem: {
+        paddingVertical: 10,
+    },
+    dropdownItemText: {
+        color: '#000',
+    },
+    closeButton: {
+        marginTop: 10,
+        textAlign: 'center',
+        color: 'blue',
+    },
+    muscleItem: {
+        opacity: 1,
+        color: 'black'
+    },
     titleContainer: {
         flexDirection: 'column',
         alignItems: 'center',
@@ -383,11 +435,6 @@ const styles = StyleSheet.create({
     },
     pickerButtonText: {
         color: 'white',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     pickerContainer: {
         backgroundColor: 'white',

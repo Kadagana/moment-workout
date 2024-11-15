@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b23263d-e546-4823-a8cc-06b6d2378979" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/moment-workout/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/moment-workout/.gitignore" afterDir="false" />
-    </list>
+    <list default="true" id="4b23263d-e546-4823-a8cc-06b6d2378979" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -15,9 +13,12 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="2lGozZ63ES0Ns0hXQcu4QYKPNeT" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -25,14 +26,17 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/kobiemagana/Desktop/WebStormProjects/moment-workout",
+    "last_opened_file_path": "/Users/kobiemagana/WebstormProjects/moment",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-impl/jsLanguageServicesImpl/external",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -52,6 +56,7 @@
       <option name="presentableId" value="Default" />
       <updated>1724816036245</updated>
       <workItem from="1724816037319" duration="1983000" />
+      <workItem from="1728327090534" duration="157000" />
     </task>
     <servers />
   </component>
