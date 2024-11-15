@@ -276,21 +276,21 @@ export default function HomeScreen() {
                         <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
                             <LineChart
                                 data={chartData}
-                                width={screenWidth * 1.0} // Scrollable chart width
-                                height={220}
+                                width={screenWidth * 4} // Scrollable chart width
+                                height={300}
                                 chartConfig={{
-                                    backgroundColor: '#1e2923',
-                                    backgroundGradientFrom: '#08130D',
-                                    backgroundGradientTo: '#1F4203',
+                                    backgroundColor: 'black',
+                                    backgroundGradientFrom: 'black',
+                                    backgroundGradientTo: 'maroon',
                                     decimalPlaces: 0,
-                                    color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                                    color: (opacity = 1) => `black`,
                                     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                                     style: {
-                                        borderRadius: 16,
+                                        borderRadius: 18,
                                     },
                                     propsForDots: {
-                                        r: '6',
-                                        strokeWidth: '2',
+                                        r: '8',
+                                        strokeWidth: '1',
                                         stroke: '#ffa726',
                                     },
                                 }}
