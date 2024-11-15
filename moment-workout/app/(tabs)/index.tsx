@@ -19,11 +19,9 @@ import { ThemedView } from '@/components/ThemedView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LineChart } from 'react-native-chart-kit';
+import { BarChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
-
 const screenWidth = Dimensions.get("window").width;
-
-// Define the type for each muscle set
 type WorkingSet = {
     muscle: string;
     sets: number;
@@ -40,9 +38,8 @@ export default function HomeScreen() {
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
     const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
     const [selectedMuscleForChart, setSelectedMuscleForChart] = useState('');
-    // Predefined list of muscles
     const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Quadriceps', 'Biceps', 'Abs', 'Triceps', 'Hamstrings', 'Glutes', 'Calves'];
-
+    const [barChartData, setBarChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
     const getWeekLabel = (date: any): string => {
         const monday = new Date(date);
         const day = monday.getDay();
@@ -51,8 +48,36 @@ export default function HomeScreen() {
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         return monday.toLocaleDateString('en-US', options);
     };
-    const loadChartData = async (muscle: string) => {
-        // Retrieve data for multiple weeks
+    const loadBarChartData = (weekData: WorkingSet[]) => {
+        // Initialize data for all muscle groups with zero sets
+        const muscleDataMap = muscleGroups.reduce((acc, muscle) => {
+            acc[muscle] = 0; // Default to zero sets for each muscle
+            return acc;
+        }, {} as Record<string, number>);
+
+        // Update with data from `weekData`
+        weekData.forEach((item) => {
+            if (muscleDataMap[item.muscle] !== undefined) {
+                muscleDataMap[item.muscle] = item.sets; // Update with actual sets
+            }
+        });
+
+        // Filter out muscle groups with 0 sets
+        const filteredData = Object.entries(muscleDataMap).filter(([_, sets]) => sets > 0);
+
+        // Convert filtered data to format for the bar chart
+        const labels = filteredData.map(([muscle]) => muscle);
+        const data = filteredData.map(([_, sets]) => sets);
+
+        setBarChartData({
+            labels: labels,
+            datasets: [{ data: data }],
+        });
+    };
+
+
+    const loadLineChartData = async (muscle: string) => {
+        // Retrieve data for multiple weeks for the line graph
         const labels: string[] = [];
         const setsData: number[] = [];
 
@@ -63,7 +88,7 @@ export default function HomeScreen() {
 
             // Load data for each week
             const weeklyData = await new Promise<WorkingSet[]>((resolve) => {
-                getWeekData(weekLabel, (data) => resolve(data || []));
+                getWeekData(weekLabel, (data: WorkingSet[]) => resolve(data || []));
             });
 
             const muscleData = weeklyData.find((item) => item.muscle === muscle);
@@ -73,18 +98,20 @@ export default function HomeScreen() {
             setsData.unshift(sets); // Add sets count
         }
 
-        // Update the state for the chart
+        // Update the state for the line chart
         setChartData({
             labels: labels,
             datasets: [{ data: setsData }],
         });
+        console.log('Working Sets Data:', workingSets); // Log for debugging purposes
     };
 
     useEffect(() => {
         if (selectedMuscleForChart) {
-            loadChartData(selectedMuscleForChart); // Load chart data when a muscle is selected
+            loadLineChartData(selectedMuscleForChart); // Load data for the line chart when a muscle is selected
         }
     }, [selectedMuscleForChart, workingSets]);
+
 
     useEffect(() => {
         const label = getWeekLabel(selectedDate);
@@ -92,14 +119,16 @@ export default function HomeScreen() {
         loadWeekData(label);
     }, [selectedDate]);
 
-    const loadWeekData = async (week: any) => {
+    const loadWeekData = async (week: string) => {
         try {
-            getWeekData(week, (data: any) => {
+            getWeekData(week, (data: WorkingSet[]) => {
                 if (data.length > 0) {
                     setWorkingSets(data);
                 } else {
-                    setWorkingSets([]);
+                    setWorkingSets([]); // No data found for the week
                 }
+                // Load bar chart data after setting `workingSets`
+                loadBarChartData(data);
             });
         } catch (error) {
             console.error("Error loading week data:", error);
@@ -138,6 +167,7 @@ export default function HomeScreen() {
         const updatedSets = [...workingSets, newGroup];
         setWorkingSets(updatedSets);
         saveMuscleGroups(updatedSets);
+        loadBarChartData(updatedSets);
         setNewSets('');
         setSelectedMuscle('');
         setIsMusclePickerVisible(false);
@@ -177,7 +207,13 @@ export default function HomeScreen() {
         setIsMusclePickerVisible(true);
     };
 
-    const CustomDropdown = ({ items, selectedValue, onValueChange }) => {
+    interface CustomDropdownProps {
+        items: string[];
+        selectedValue: string;
+        onValueChange: (value: string) => void;
+    }
+
+    const CustomDropdown: React.FC<CustomDropdownProps> = ({ items, selectedValue, onValueChange }) => {
         const [isVisible, setIsVisible] = useState(false);
 
         return (
@@ -216,6 +252,7 @@ export default function HomeScreen() {
         );
     };
 
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ParallaxScrollView
@@ -235,7 +272,7 @@ export default function HomeScreen() {
                         onValueChange={setSelectedMuscleForChart}
                     />
 
-                    {selectedMuscleForChart ? (
+                    {selectedMuscleForChart && (
                         <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
                             <LineChart
                                 data={chartData}
@@ -263,11 +300,42 @@ export default function HomeScreen() {
                                 }}
                             />
                         </ScrollView>
-                    ) : (
-                        <Text style={{ textAlign: 'center', marginVertical: 20 }}>
-                            Select a muscle group to display data.
-                        </Text>
                     )}
+                </ThemedView>
+                <ThemedView style={styles.chartContainer}>
+                    <Text style={styles.chartTitle}>
+                        Sets per Muscle Group for the Week of {weekLabel}
+                    </Text>
+                    <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
+                        <BarChart
+                            data={barChartData}
+                            width={screenWidth * 1.2} // Adjust as needed
+                            height={300} // Adjust height to make it larger
+                            yAxisLabel=""
+                            yAxisSuffix=" sets"
+                            yAxisInterval={1} // Optional interval for y-axis
+                            chartConfig={{
+                                backgroundColor: '#022173',
+                                backgroundGradientFrom: '#1E2923',
+                                backgroundGradientTo: '#08130D',
+                                decimalPlaces: 0,
+                                color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
+                                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                                style: {
+                                    borderRadius: 16,
+                                },
+                                propsForBackgroundLines: {
+                                    stroke: '#e3e3e3', // Optional background lines color
+                                },
+                            }}
+                            showValuesOnTopOfBars
+                            fromZero
+                            style={{
+                                marginVertical: 8,
+                                borderRadius: 16,
+                            }}
+                        />
+                    </ScrollView>
                 </ThemedView>
 
                 <ThemedView style={styles.titleContainer}>
@@ -361,6 +429,16 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+    chartContainer: {
+        marginBottom: 16, // Optional, to create spacing around the chart container
+    },
+    chartTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 8, // Space between the title and chart
+        color: '#fff', // Adjust color based on your theme
+    },
     dropdownButton: {
         padding: 10,
         backgroundColor: '#ccc',
