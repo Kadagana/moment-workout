@@ -74,6 +74,38 @@ export default function HomeScreen() {
             datasets: [{ data: data }],
         });
     };
+    const lineChartConfig = {
+        backgroundColor: 'green',
+        backgroundGradientFrom: 'black',
+        backgroundGradientTo: 'maroon',
+        decimalPlaces: 0,
+        color: (opacity = 1) => `black`,
+        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+        style: {
+            borderRadius: 18,
+        },
+        propsForDots: {
+            r: '8',
+            strokeWidth: '1',
+            stroke: '#ffa726',
+        },
+    };
+
+
+    const barChartConfig = {
+        backgroundColor: 'black',
+        backgroundGradientFrom: 'maroon',
+        backgroundGradientTo: 'white',
+        decimalPlaces: 0,
+        color: (opacity = 0.5) => `black`,
+        labelColor: (opacity = 1) => `black`,
+        style: {
+            borderRadius: 16,
+        },
+        propsForBackgroundLines: {
+            stroke: '#e3e3e3',
+        },
+    };
 
 
     const loadLineChartData = async (muscle: string) => {
@@ -252,6 +284,35 @@ export default function HomeScreen() {
         );
     };
 
+    const CustomLineChart = ({ data, config }) => (
+        <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
+            <LineChart
+                data={data}
+                width={screenWidth * 4} // Adjust as needed
+                height={300}
+                chartConfig={config}
+                style={{ marginVertical: 8, borderRadius: 16 }}
+            />
+        </ScrollView>
+    );
+
+    const CustomBarChart = ({ data, config }) => (
+        <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
+            <BarChart
+                data={data}
+                width={screenWidth * 1.2} // Adjust as needed
+                height={300}
+                yAxisLabel=""
+                yAxisSuffix=" sets"
+                yAxisInterval={1}
+                chartConfig={config}
+                showValuesOnTopOfBars
+                fromZero
+                style={{ marginVertical: 8, borderRadius: 16 }}
+            />
+        </ScrollView>
+    );
+
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -273,69 +334,22 @@ export default function HomeScreen() {
                     />
 
                     {selectedMuscleForChart && (
-                        <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
-                            <LineChart
-                                data={chartData}
-                                width={screenWidth * 4} // Scrollable chart width
-                                height={300}
-                                chartConfig={{
-                                    backgroundColor: 'black',
-                                    backgroundGradientFrom: 'black',
-                                    backgroundGradientTo: 'maroon',
-                                    decimalPlaces: 0,
-                                    color: (opacity = 1) => `black`,
-                                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                                    style: {
-                                        borderRadius: 18,
-                                    },
-                                    propsForDots: {
-                                        r: '8',
-                                        strokeWidth: '1',
-                                        stroke: '#ffa726',
-                                    },
-                                }}
-                                style={{
-                                    marginVertical: 8,
-                                    borderRadius: 16,
-                                }}
-                            />
-                        </ScrollView>
+                        <CustomLineChart
+                            key={`line-chart-${selectedMuscleForChart}`}
+                            data={chartData}
+                            config={lineChartConfig}
+                        />
                     )}
                 </ThemedView>
                 <ThemedView style={styles.chartContainer}>
                     <Text style={styles.chartTitle}>
                         Sets per Muscle Group for the Week of {weekLabel}
                     </Text>
-                    <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
-                        <BarChart
-                            data={barChartData}
-                            width={screenWidth * 1.2} // Adjust as needed
-                            height={300} // Adjust height to make it larger
-                            yAxisLabel=""
-                            yAxisSuffix=" sets"
-                            yAxisInterval={1} // Optional interval for y-axis
-                            chartConfig={{
-                                backgroundColor: '#022173',
-                                backgroundGradientFrom: '#1E2923',
-                                backgroundGradientTo: '#08130D',
-                                decimalPlaces: 0,
-                                color: (opacity = 1) => `rgba(26, 255, 146, ${opacity})`,
-                                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                                style: {
-                                    borderRadius: 16,
-                                },
-                                propsForBackgroundLines: {
-                                    stroke: '#e3e3e3', // Optional background lines color
-                                },
-                            }}
-                            showValuesOnTopOfBars
-                            fromZero
-                            style={{
-                                marginVertical: 8,
-                                borderRadius: 16,
-                            }}
-                        />
-                    </ScrollView>
+                    <CustomBarChart
+                        key={`bar-chart-${weekLabel}`}
+                        data={barChartData}
+                        config={barChartConfig}
+                    />
                 </ThemedView>
 
                 <ThemedView style={styles.titleContainer}>
