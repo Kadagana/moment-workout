@@ -18,10 +18,47 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { LineChart } from 'react-native-chart-kit';
-import { BarChart } from 'react-native-chart-kit';
+import CustomDropdown from '@/components/CustomDropdown';
+import CustomBarChart from '@/components/CustomBarChart';
+import CustomLineChart from '@/components/CustomLineChart';
+import MuscleGroupList from '@/components/MuscleGroupList';
 import { Dimensions } from 'react-native';
+import styles from "@/styles/styles";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const screenWidth = Dimensions.get("window").width;
+const barChartConfig = {
+    backgroundColor: 'black',
+    backgroundGradientFrom: 'maroon',
+    backgroundGradientTo: 'white',
+    decimalPlaces: 0,
+    color: (opacity = 0.5) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `black`,
+    style: {
+        borderRadius: 16,
+    },
+    propsForBackgroundLines: {
+        stroke: '#e3e3e3',
+    },
+};
+
+const lineChartConfig = {
+    backgroundColor: 'green',
+    backgroundGradientFrom: 'black',
+    backgroundGradientTo: 'maroon',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    style: {
+        borderRadius: 18,
+    },
+    propsForDots: {
+        r: '8',
+        strokeWidth: '1',
+        stroke: '#ffa726',
+    },
+};
+
 type WorkingSet = {
     muscle: string;
     sets: number;
@@ -38,8 +75,21 @@ export default function HomeScreen() {
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
     const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
     const [selectedMuscleForChart, setSelectedMuscleForChart] = useState('');
-    const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Quadriceps', 'Biceps', 'Abs', 'Triceps', 'Hamstrings', 'Glutes', 'Calves'];
+    const [muscleGroups, setMuscleGroups] = useState([
+        'Chest',
+        'Back',
+        'Shoulders',
+        'Quadriceps',
+        'Biceps',
+        'Abs',
+        'Triceps',
+        'Hamstrings',
+        'Glutes',
+        'Calves',
+    ]);
+    const [newMuscleGroup, setNewMuscleGroup] = useState('');
     const [barChartData, setBarChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
+
     const getWeekLabel = (date: any): string => {
         const monday = new Date(date);
         const day = monday.getDay();
@@ -48,77 +98,35 @@ export default function HomeScreen() {
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         return monday.toLocaleDateString('en-US', options);
     };
+
     const loadBarChartData = (weekData: WorkingSet[]) => {
-        // Initialize data for all muscle groups with zero sets
         const muscleDataMap = muscleGroups.reduce((acc, muscle) => {
-            acc[muscle] = 0; // Default to zero sets for each muscle
+            acc[muscle] = 0;
             return acc;
         }, {} as Record<string, number>);
 
-        // Update with data from `weekData`
         weekData.forEach((item) => {
             if (muscleDataMap[item.muscle] !== undefined) {
-                muscleDataMap[item.muscle] = item.sets; // Update with actual sets
+                muscleDataMap[item.muscle] = item.sets;
             }
         });
 
-        // Filter out muscle groups with 0 sets
         const filteredData = Object.entries(muscleDataMap).filter(([_, sets]) => sets > 0);
-
-        // Convert filtered data to format for the bar chart
         const labels = filteredData.map(([muscle]) => muscle);
         const data = filteredData.map(([_, sets]) => sets);
 
-        setBarChartData({
-            labels: labels,
-            datasets: [{ data: data }],
-        });
+        setBarChartData({ labels, datasets: [{ data }] });
     };
-    const lineChartConfig = {
-        backgroundColor: 'green',
-        backgroundGradientFrom: 'black',
-        backgroundGradientTo: 'maroon',
-        decimalPlaces: 0,
-        color: (opacity = 1) => `black`,
-        labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-        style: {
-            borderRadius: 18,
-        },
-        propsForDots: {
-            r: '8',
-            strokeWidth: '1',
-            stroke: '#ffa726',
-        },
-    };
-
-
-    const barChartConfig = {
-        backgroundColor: 'black',
-        backgroundGradientFrom: 'maroon',
-        backgroundGradientTo: 'white',
-        decimalPlaces: 0,
-        color: (opacity = 0.5) => `black`,
-        labelColor: (opacity = 1) => `black`,
-        style: {
-            borderRadius: 16,
-        },
-        propsForBackgroundLines: {
-            stroke: '#e3e3e3',
-        },
-    };
-
 
     const loadLineChartData = async (muscle: string) => {
-        // Retrieve data for multiple weeks for the line graph
         const labels: string[] = [];
         const setsData: number[] = [];
 
-        for (let i = 0; i < 20; i++) { // Example: iterate over the past 20 weeks
+        for (let i = 0; i < 20; i++) {
             const date = new Date();
-            date.setDate(date.getDate() - i * 7); // Go back by weeks
+            date.setDate(date.getDate() - i * 7);
             const weekLabel = getWeekLabel(date);
 
-            // Load data for each week
             const weeklyData = await new Promise<WorkingSet[]>((resolve) => {
                 getWeekData(weekLabel, (data: WorkingSet[]) => resolve(data || []));
             });
@@ -126,24 +134,18 @@ export default function HomeScreen() {
             const muscleData = weeklyData.find((item) => item.muscle === muscle);
             const sets = muscleData ? muscleData.sets : 0;
 
-            labels.unshift(weekLabel); // Add to labels
-            setsData.unshift(sets); // Add sets count
+            labels.unshift(weekLabel);
+            setsData.unshift(sets);
         }
 
-        // Update the state for the line chart
-        setChartData({
-            labels: labels,
-            datasets: [{ data: setsData }],
-        });
-        console.log('Working Sets Data:', workingSets); // Log for debugging purposes
+        setChartData({ labels, datasets: [{ data: setsData }] });
     };
 
     useEffect(() => {
         if (selectedMuscleForChart) {
-            loadLineChartData(selectedMuscleForChart); // Load data for the line chart when a muscle is selected
+            loadLineChartData(selectedMuscleForChart);
         }
     }, [selectedMuscleForChart, workingSets]);
-
 
     useEffect(() => {
         const label = getWeekLabel(selectedDate);
@@ -157,9 +159,8 @@ export default function HomeScreen() {
                 if (data.length > 0) {
                     setWorkingSets(data);
                 } else {
-                    setWorkingSets([]); // No data found for the week
+                    setWorkingSets([]);
                 }
-                // Load bar chart data after setting `workingSets`
                 loadBarChartData(data);
             });
         } catch (error) {
@@ -169,7 +170,6 @@ export default function HomeScreen() {
 
     const saveMuscleGroups = async (updatedSets: any) => {
         try {
-            console.log(`Saving muscle groups for week: ${weekLabel}`, updatedSets);
             await insertData(weekLabel, updatedSets);
         } catch (error) {
             console.error('Error saving muscle groups:', error);
@@ -193,7 +193,7 @@ export default function HomeScreen() {
         const muscleExists = workingSets.some((item) => item.muscle === selectedMuscle);
         if (muscleExists) {
             Alert.alert('This muscle group has already been added.');
-            return; // Prevent adding the muscle again
+            return;
         }
         const newGroup = { muscle: selectedMuscle, sets: setsNumber };
         const updatedSets = [...workingSets, newGroup];
@@ -216,14 +216,6 @@ export default function HomeScreen() {
         saveMuscleGroups(updatedSets);
     };
 
-    const renderRightActions = (muscle: any) => (
-        <View style={styles.deleteButton}>
-            <TouchableOpacity onPress={() => deleteMuscleGroup(muscle)}>
-                <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-        </View>
-    );
-
     const onDateChange = (event: any, date: any) => {
         if (date) {
             setTempSelectedDate(date);
@@ -239,92 +231,11 @@ export default function HomeScreen() {
         setIsMusclePickerVisible(true);
     };
 
-    interface CustomDropdownProps {
-        items: string[];
-        selectedValue: string;
-        onValueChange: (value: string) => void;
-    }
-
-    const CustomDropdown: React.FC<CustomDropdownProps> = ({ items, selectedValue, onValueChange }) => {
-        const [isVisible, setIsVisible] = useState(false);
-
-        return (
-            <View style={{ marginVertical: 10 }}>
-                <TouchableOpacity onPress={() => setIsVisible(true)} style={styles.dropdownButton}>
-                    <Text style={styles.dropdownButtonText}>{selectedValue || 'Select an option'}</Text>
-                </TouchableOpacity>
-                {isVisible && (
-                    <Modal
-                        transparent={true}
-                        animationType="slide"
-                        onRequestClose={() => setIsVisible(false)}
-                    >
-                        <View style={styles.modalContainer}>
-                            <View style={styles.dropdownList}>
-                                {items.map((item, index) => (
-                                    <TouchableOpacity
-                                        key={index}
-                                        onPress={() => {
-                                            onValueChange(item);
-                                            setIsVisible(false);
-                                        }}
-                                        style={styles.dropdownItem}
-                                    >
-                                        <Text style={styles.dropdownItemText}>{item}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                                <TouchableOpacity onPress={() => setIsVisible(false)}>
-                                    <Text style={styles.closeButton}>Close</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </Modal>
-                )}
-            </View>
-        );
-    };
-
-    const CustomLineChart = ({ data, config }) => (
-        <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
-            <LineChart
-                data={data}
-                width={screenWidth * 4} // Adjust as needed
-                height={300}
-                chartConfig={config}
-                style={{ marginVertical: 8, borderRadius: 16 }}
-            />
-        </ScrollView>
-    );
-
-    const CustomBarChart = ({ data, config }) => (
-        <ScrollView horizontal contentContainerStyle={{ padding: 10 }}>
-            <BarChart
-                data={data}
-                width={screenWidth * 1.2} // Adjust as needed
-                height={300}
-                yAxisLabel=""
-                yAxisSuffix=" sets"
-                yAxisInterval={1}
-                chartConfig={config}
-                showValuesOnTopOfBars
-                fromZero
-                style={{ marginVertical: 8, borderRadius: 16 }}
-            />
-        </ScrollView>
-    );
-
-
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <ParallaxScrollView
-                headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-                headerImage={
-                    <Image
-                        source={require('@/assets/images/caracal.jpg')}
-                        style={styles.reactLogo}
-                    />
-                }
-            >
+            <ParallaxScrollView headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }} headerImage={
+                <Image source={require('@/assets/images/caracal.jpg')} style={styles.reactLogo} />
+            }>
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Muscle Group for Chart</ThemedText>
                     <CustomDropdown
@@ -332,32 +243,21 @@ export default function HomeScreen() {
                         selectedValue={selectedMuscleForChart}
                         onValueChange={setSelectedMuscleForChart}
                     />
-
                     {selectedMuscleForChart && (
-                        <CustomLineChart
-                            key={`line-chart-${selectedMuscleForChart}`}
-                            data={chartData}
-                            config={lineChartConfig}
-                        />
+                        <CustomLineChart data={chartData} config={lineChartConfig} />
                     )}
                 </ThemedView>
                 <ThemedView style={styles.chartContainer}>
                     <Text style={styles.chartTitle}>
                         Sets per Muscle Group for the Week of {weekLabel}
                     </Text>
-                    <CustomBarChart
-                        key={`bar-chart-${weekLabel}`}
-                        data={barChartData}
-                        config={barChartConfig}
-                    />
+                    <CustomBarChart data={barChartData} config={barChartConfig} />
                 </ThemedView>
-
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Week: {weekLabel}</ThemedText>
                     <View style={styles.buttonContainer}>
                         <Button title="Select Date" onPress={showDatePicker} />
                     </View>
-
                     {showPicker && (
                         <View>
                             {Platform.OS === 'web' ? (
@@ -381,34 +281,20 @@ export default function HomeScreen() {
                         </View>
                     )}
                 </ThemedView>
-
                 <ThemedView>
                     <ThemedText type="subtitle">Working Sets for Week Starting {weekLabel}</ThemedText>
-                    {workingSets.map((item, index) => (
-                        <Swipeable
-                            key={index}
-                            renderRightActions={() => renderRightActions(item.muscle)}
-                        >
-                            <ThemedView key={index} style={styles.setItem}>
-                                <ThemedText>{item.muscle}</ThemedText>
-                                <TextInput
-                                    style={styles.setInput}
-                                    keyboardType="numeric"
-                                    defaultValue={item.sets.toString()}
-                                    onChangeText={(value) => updateSet(item.muscle, parseInt(value))}
-                                />
-                            </ThemedView>
-                        </Swipeable>
-                    ))}
+                    <MuscleGroupList
+                        muscleGroups={workingSets}
+                        onUpdateSet={updateSet}
+                        onDeleteMuscleGroup={deleteMuscleGroup}
+                    />
                 </ThemedView>
-
                 <ThemedView style={styles.inputContainer}>
                     <TouchableOpacity onPress={openMusclePicker} style={styles.pickerButton}>
                         <Text style={styles.pickerButtonText}>
                             {selectedMuscle || 'Select Muscle Group'}
                         </Text>
                     </TouchableOpacity>
-
                     <TextInput
                         style={styles.numberOfSetsInput}
                         placeholder="Number of sets"
@@ -437,126 +323,31 @@ export default function HomeScreen() {
                         </View>
                     </Modal>
                 </ThemedView>
+                <ThemedView style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.newMuscleInput}
+                        placeholder="Enter new muscle group"
+                        placeholderTextColor="#999"
+                        value={newMuscleGroup}
+                        onChangeText={setNewMuscleGroup}
+                    />
+                    <Button
+                        title="Add Muscle Group"
+                        onPress={() => {
+                            if (newMuscleGroup.trim() === '') {
+                                Alert.alert('Error', 'Muscle group name cannot be empty.');
+                                return;
+                            }
+                            if (muscleGroups.includes(newMuscleGroup.trim())) {
+                                Alert.alert('Error', 'This muscle group already exists.');
+                                return;
+                            }
+                            setMuscleGroups([...muscleGroups, newMuscleGroup.trim()]);
+                            setNewMuscleGroup('');
+                        }}
+                    />
+                </ThemedView>
             </ParallaxScrollView>
         </GestureHandlerRootView>
     );
 }
-
-const styles = StyleSheet.create({
-    chartContainer: {
-        marginBottom: 16, // Optional, to create spacing around the chart container
-    },
-    chartTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 8, // Space between the title and chart
-        color: '#fff', // Adjust color based on your theme
-    },
-    dropdownButton: {
-        padding: 10,
-        backgroundColor: '#ccc',
-        borderRadius: 5,
-        alignItems: 'center',
-    },
-    dropdownButtonText: {
-        color: '#000',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    dropdownList: {
-        backgroundColor: '#fff',
-        margin: 20,
-        padding: 20,
-        borderRadius: 10,
-    },
-    dropdownItem: {
-        paddingVertical: 10,
-    },
-    dropdownItemText: {
-        color: '#000',
-    },
-    closeButton: {
-        marginTop: 10,
-        textAlign: 'center',
-        color: 'blue',
-    },
-    muscleItem: {
-        opacity: 1,
-        color: 'black'
-    },
-    titleContainer: {
-        flexDirection: 'column',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    buttonContainer: {
-        marginTop: 8,
-        alignItems: 'center',
-    },
-    setItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-    },
-    setInput: {
-        width: 50,
-        padding: 5,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 5,
-        textAlign: 'center',
-        color: 'white',
-    },
-    inputContainer: {
-        marginTop: 16,
-        padding: 16,
-    },
-    pickerButton: {
-        padding: 10,
-        backgroundColor: '#333',
-        borderRadius: 5,
-        marginBottom: 8,
-        alignItems: 'center',
-    },
-    pickerButtonText: {
-        color: 'white',
-    },
-    pickerContainer: {
-        backgroundColor: 'white',
-        margin: 20,
-        padding: 20,
-        borderRadius: 10,
-    },
-    deleteButton: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 75,
-        backgroundColor: 'red',
-        borderRadius: 5,
-    },
-    deleteButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-    },
-    reactLogo: {
-        height: 300,
-        width: 1525,
-        bottom: 0,
-        left: 0,
-        position: 'static',
-    },
-    numberOfSetsInput: {
-        height: 30,
-        color: 'white',
-        borderRadius: 5,
-        borderWidth: 1,
-        borderColor: '#ccc',
-    },
-});
