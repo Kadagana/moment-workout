@@ -75,17 +75,23 @@ export default function HomeScreen() {
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
     const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
     const [selectedMuscleForChart, setSelectedMuscleForChart] = useState('');
-    const [muscleGroups, setMuscleGroups] = useState([
-        'Chest',
-        'Back',
-        'Shoulders',
-        'Quadriceps',
-        'Biceps',
-        'Abs',
-        'Triceps',
-        'Hamstrings',
-        'Glutes',
-        'Calves',
+    // const [muscleGroups, setMuscleGroups] = useState([
+    //     'Chest',
+    //     'Back',
+    //     'Shoulders',
+    //     'Quadriceps',
+    //     'Biceps',
+    //     'Abs',
+    //     'Triceps',
+    //     'Hamstrings',
+    //     'Glutes',
+    //     'Calves',
+    // ]);
+    const [muscleGroups, setMuscleGroups] = useState<WorkingSet[]>([
+        { muscle: 'Chest', sets: 0 },
+        { muscle: 'Back', sets: 0 },
+        { muscle: 'Shoulders', sets: 0 },
+        // Add more initial items as needed
     ]);
     const [newMuscleGroup, setNewMuscleGroup] = useState('');
     const [barChartData, setBarChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
@@ -177,31 +183,44 @@ export default function HomeScreen() {
     };
 
     const updateSet = (muscle: string, newSetCount: number): void => {
-        const updatedSets = workingSets.map((item) =>
+        const updatedMuscleGroups = muscleGroups.map((item) =>
             item.muscle === muscle ? { ...item, sets: newSetCount } : item
         );
-        setWorkingSets(updatedSets);
-        saveMuscleGroups(updatedSets);
+        setMuscleGroups(updatedMuscleGroups);
+        saveMuscleGroups(updatedMuscleGroups);
     };
+    useEffect(() => {
+        console.log('Selected Muscle:', selectedMuscle);
+    }, [selectedMuscle]);
+
+
+
 
     const addMuscleGroup = () => {
         const setsNumber = Number(newSets);
-        if (!selectedMuscle || !newSets || isNaN(setsNumber)) {
-            Alert.alert('Please select a valid muscle group and set count.');
+        if (!selectedMuscle || isNaN(setsNumber) || setsNumber <= 0) {
+            Alert.alert('Please select a valid muscle group and enter a positive number of sets.');
             return;
         }
-        const muscleExists = workingSets.some((item) => item.muscle === selectedMuscle);
+
+        // Check if the muscle group already exists
+        const muscleExists = muscleGroups.some((item) => item.muscle === selectedMuscle);
         if (muscleExists) {
-            Alert.alert('This muscle group has already been added.');
-            return;
+            // Update the sets for the existing muscle group
+            const updatedMuscleGroups = muscleGroups.map((item) =>
+                item.muscle === selectedMuscle ? { ...item, sets: item.sets + setsNumber } : item
+            );
+            setMuscleGroups(updatedMuscleGroups);
+        } else {
+            // Add new muscle group
+            const newGroup: WorkingSet = { muscle: selectedMuscle, sets: setsNumber };
+            const updatedGroups = [...muscleGroups, newGroup];
+            setMuscleGroups(updatedGroups);
         }
-        const newGroup = { muscle: selectedMuscle, sets: setsNumber };
-        const updatedSets = [...workingSets, newGroup];
-        setWorkingSets(updatedSets);
-        saveMuscleGroups(updatedSets);
-        loadBarChartData(updatedSets);
-        setNewSets('');
+
+        // Clear inputs
         setSelectedMuscle('');
+        setNewSets('');
         setIsMusclePickerVisible(false);
     };
 
@@ -239,7 +258,7 @@ export default function HomeScreen() {
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Muscle Group for Chart</ThemedText>
                     <CustomDropdown
-                        items={muscleGroups}
+                        items={muscleGroups.map(group => group.muscle)} // Extracting the muscle names for dropdown
                         selectedValue={selectedMuscleForChart}
                         onValueChange={setSelectedMuscleForChart}
                     />
@@ -284,15 +303,17 @@ export default function HomeScreen() {
                 <ThemedView>
                     <ThemedText type="subtitle">Working Sets for Week Starting {weekLabel}</ThemedText>
                     <MuscleGroupList
-                        muscleGroups={workingSets}
-                        onUpdateSet={updateSet}
-                        onDeleteMuscleGroup={deleteMuscleGroup}
+                        muscleGroups={muscleGroups}
+                        setMuscleGroups={setMuscleGroups} // Ensure this is passed correctly
+                        selectedMuscleForChart={selectedMuscleForChart}
+                        setSelectedMuscleForChart={setSelectedMuscleForChart}
                     />
+
                 </ThemedView>
                 <ThemedView style={styles.inputContainer}>
                     <TouchableOpacity onPress={openMusclePicker} style={styles.pickerButton}>
                         <Text style={styles.pickerButtonText}>
-                            {selectedMuscle || 'Select Muscle Group'}
+                            {selectedMuscle || 'Select Muscle Group To Add Sets'}
                         </Text>
                     </TouchableOpacity>
                     <TextInput
@@ -304,7 +325,7 @@ export default function HomeScreen() {
                         returnKeyType="done"
                         onSubmitEditing={addMuscleGroup}
                     />
-                    <Button title="Add Muscle Group" onPress={addMuscleGroup} />
+                    <Button title="Add Muscle Group And Sets" onPress={addMuscleGroup} />
                     <Modal
                         transparent={true}
                         visible={isMusclePickerVisible}
@@ -314,10 +335,11 @@ export default function HomeScreen() {
                         <View style={styles.modalContainer}>
                             <View style={styles.pickerContainer}>
                                 <CustomDropdown
-                                    items={muscleGroups}
+                                    items={muscleGroups.map(group => group.muscle)}
                                     selectedValue={selectedMuscle}
-                                    onValueChange={setSelectedMuscle}
+                                    onValueChange={setSelectedMuscle} // This ensures state is updated
                                 />
+
                                 <Button title="Done" onPress={() => setIsMusclePickerVisible(false)} />
                             </View>
                         </View>
@@ -334,18 +356,29 @@ export default function HomeScreen() {
                     <Button
                         title="Add Muscle Group"
                         onPress={() => {
-                            if (newMuscleGroup.trim() === '') {
+                            const trimmedMuscleGroup = newMuscleGroup.trim();
+                            if (trimmedMuscleGroup === '') {
                                 Alert.alert('Error', 'Muscle group name cannot be empty.');
                                 return;
                             }
-                            if (muscleGroups.includes(newMuscleGroup.trim())) {
+
+                            // Check if muscle already exists in the array of objects
+                            const muscleExists = muscleGroups.some(group => group.muscle === trimmedMuscleGroup);
+                            if (muscleExists) {
                                 Alert.alert('Error', 'This muscle group already exists.');
                                 return;
                             }
-                            setMuscleGroups([...muscleGroups, newMuscleGroup.trim()]);
-                            setNewMuscleGroup('');
+
+                            // Add new muscle group as an object
+                            const newGroup = { muscle: trimmedMuscleGroup, sets: 0 };
+                            const updatedGroups = [...muscleGroups, newGroup];
+                            setMuscleGroups(updatedGroups); // Correctly update state
+                            console.log('Updated muscleGroups:', updatedGroups); // Debugging statement
+                            setNewMuscleGroup(''); // Clear the input
                         }}
                     />
+
+
                 </ThemedView>
             </ParallaxScrollView>
         </GestureHandlerRootView>
