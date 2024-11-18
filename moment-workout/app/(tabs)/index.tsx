@@ -64,6 +64,8 @@ type WorkingSet = {
     sets: number;
 };
 
+type WeeklyMuscleData = Record<string, WorkingSet[]>;
+
 export default function HomeScreen() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [tempSelectedDate, setTempSelectedDate] = useState(new Date());
@@ -87,6 +89,7 @@ export default function HomeScreen() {
     //     'Glutes',
     //     'Calves',
     // ]);
+    const [weeklyMuscleGroups, setWeeklyMuscleGroups] = useState<WeeklyMuscleData>({}); // Weekly muscle groups data
     const [muscleGroups, setMuscleGroups] = useState<WorkingSet[]>([
         { muscle: 'Chest', sets: 0 },
         { muscle: 'Back', sets: 0 },
@@ -105,47 +108,64 @@ export default function HomeScreen() {
         return monday.toLocaleDateString('en-US', options);
     };
 
-    const loadBarChartData = (weekData: WorkingSet[]) => {
-        const muscleDataMap = muscleGroups.reduce((acc, muscle) => {
-            acc[muscle] = 0;
+    const loadBarChartData = (weekLabel: string) => {
+        const currentWeekData = weeklyMuscleGroups[weekLabel] || [];
+        const muscleDataMap = currentWeekData.reduce((acc, item) => {
+            acc[item.muscle] = item.sets;
             return acc;
         }, {} as Record<string, number>);
 
-        weekData.forEach((item) => {
-            if (muscleDataMap[item.muscle] !== undefined) {
-                muscleDataMap[item.muscle] = item.sets;
-            }
-        });
-
-        const filteredData = Object.entries(muscleDataMap).filter(([_, sets]) => sets > 0);
-        const labels = filteredData.map(([muscle]) => muscle);
-        const data = filteredData.map(([_, sets]) => sets);
+        const labels = Object.keys(muscleDataMap);
+        const data = Object.values(muscleDataMap);
 
         setBarChartData({ labels, datasets: [{ data }] });
     };
+
+
 
     const loadLineChartData = async (muscle: string) => {
         const labels: string[] = [];
         const setsData: number[] = [];
 
+        // Retrieve data for the last 20 weeks
         for (let i = 0; i < 20; i++) {
             const date = new Date();
             date.setDate(date.getDate() - i * 7);
             const weekLabel = getWeekLabel(date);
 
-            const weeklyData = await new Promise<WorkingSet[]>((resolve) => {
-                getWeekData(weekLabel, (data: WorkingSet[]) => resolve(data || []));
-            });
-
-            const muscleData = weeklyData.find((item) => item.muscle === muscle);
+            const currentWeekData = weeklyMuscleGroups[weekLabel] || [];
+            const muscleData = currentWeekData.find(item => item.muscle === muscle);
             const sets = muscleData ? muscleData.sets : 0;
 
             labels.unshift(weekLabel);
             setsData.unshift(sets);
         }
 
-        setChartData({ labels, datasets: [{ data: setsData }] });
+        setChartData({
+            labels,
+            datasets: [
+                {
+                    data: setsData,
+                    color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+                },
+            ],
+        });
     };
+
+    useEffect(() => {
+        const weekLabel = getWeekLabel(selectedDate);
+        loadBarChartData(weekLabel);
+    }, [selectedDate, weeklyMuscleGroups]);
+
+
+    useEffect(() => {
+        loadBarChartData(muscleGroups);
+        if (selectedMuscleForChart) {
+            loadLineChartData(selectedMuscleForChart);
+        }
+    }, [muscleGroups, selectedMuscleForChart]);
+
+
 
     useEffect(() => {
         if (selectedMuscleForChart) {
@@ -203,26 +223,34 @@ export default function HomeScreen() {
             return;
         }
 
-        // Check if the muscle group already exists
-        const muscleExists = muscleGroups.some((item) => item.muscle === selectedMuscle);
-        if (muscleExists) {
-            // Update the sets for the existing muscle group
-            const updatedMuscleGroups = muscleGroups.map((item) =>
+        const weekLabel = getWeekLabel(selectedDate); // Use the label for the selected week
+
+        setWeeklyMuscleGroups(prev => {
+            const currentWeekData = prev[weekLabel] || [];
+
+            // Check if the muscle already exists for the current week
+            const updatedWeekData = currentWeekData.map(item =>
                 item.muscle === selectedMuscle ? { ...item, sets: item.sets + setsNumber } : item
             );
-            setMuscleGroups(updatedMuscleGroups);
-        } else {
-            // Add new muscle group
-            const newGroup: WorkingSet = { muscle: selectedMuscle, sets: setsNumber };
-            const updatedGroups = [...muscleGroups, newGroup];
-            setMuscleGroups(updatedGroups);
-        }
+
+            // If muscle doesn't exist, add it
+            if (!updatedWeekData.some(item => item.muscle === selectedMuscle)) {
+                updatedWeekData.push({ muscle: selectedMuscle, sets: setsNumber });
+            }
+
+            return {
+                ...prev,
+                [weekLabel]: updatedWeekData,
+            };
+        });
 
         // Clear inputs
         setSelectedMuscle('');
         setNewSets('');
         setIsMusclePickerVisible(false);
     };
+
+
 
     const showDatePicker = () => {
         setShowPicker(true);
@@ -312,9 +340,9 @@ export default function HomeScreen() {
                 </ThemedView>
                 <ThemedView style={styles.inputContainer}>
                     <TouchableOpacity onPress={openMusclePicker} style={styles.pickerButton}>
-                        <Text style={styles.pickerButtonText}>
+                        <View><Text style={styles.pickerButtonText}>
                             {selectedMuscle || 'Select Muscle Group To Add Sets'}
-                        </Text>
+                        </Text></View>
                     </TouchableOpacity>
                     <TextInput
                         style={styles.numberOfSetsInput}
