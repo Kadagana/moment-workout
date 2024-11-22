@@ -16,7 +16,6 @@ import { insertData, getWeekData } from '@/backend/async';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import CustomDropdown from '@/components/CustomDropdown';
 import CustomBarChart from '@/components/CustomBarChart';
@@ -25,6 +24,7 @@ import MuscleGroupList from '@/components/MuscleGroupList';
 import { Dimensions } from 'react-native';
 import styles from "@/styles/styles";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DatePicker from "@/components/DatePicker";
 
 const screenWidth = Dimensions.get("window").width;
 const barChartConfig = {
@@ -77,18 +77,6 @@ export default function HomeScreen() {
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
     const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
     const [selectedMuscleForChart, setSelectedMuscleForChart] = useState('');
-    // const [muscleGroups, setMuscleGroups] = useState([
-    //     'Chest',
-    //     'Back',
-    //     'Shoulders',
-    //     'Quadriceps',
-    //     'Biceps',
-    //     'Abs',
-    //     'Triceps',
-    //     'Hamstrings',
-    //     'Glutes',
-    //     'Calves',
-    // ]);
     const [weeklyMuscleGroups, setWeeklyMuscleGroups] = useState<WeeklyMuscleData>({}); // Weekly muscle groups data
     const [muscleGroups, setMuscleGroups] = useState<WorkingSet[]>([
         { muscle: 'Chest', sets: 0 },
@@ -106,6 +94,11 @@ export default function HomeScreen() {
         monday.setDate(diff);
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
         return monday.toLocaleDateString('en-US', options);
+    };
+    const handleDateChange = (date: Date) => {
+        setSelectedDate(date);
+        const weekLabel = getWeekLabel(date);
+        setWeekLabel(weekLabel);
     };
 
     const loadBarChartData = (weekLabel: string) => {
@@ -127,7 +120,6 @@ export default function HomeScreen() {
         const labels: string[] = [];
         const setsData: number[] = [];
 
-        // Retrieve data for the last 20 weeks
         for (let i = 0; i < 20; i++) {
             const date = new Date();
             date.setDate(date.getDate() - i * 7);
@@ -155,17 +147,13 @@ export default function HomeScreen() {
     useEffect(() => {
         const weekLabel = getWeekLabel(selectedDate);
         loadBarChartData(weekLabel);
-    }, [selectedDate, weeklyMuscleGroups]);
-
+    }, [weeklyMuscleGroups, selectedDate]);
 
     useEffect(() => {
-        loadBarChartData(muscleGroups);
         if (selectedMuscleForChart) {
             loadLineChartData(selectedMuscleForChart);
         }
-    }, [muscleGroups, selectedMuscleForChart]);
-
-
+    }, [weeklyMuscleGroups, selectedMuscleForChart]);
 
     useEffect(() => {
         if (selectedMuscleForChart) {
@@ -213,8 +201,27 @@ export default function HomeScreen() {
         console.log('Selected Muscle:', selectedMuscle);
     }, [selectedMuscle]);
 
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const savedData = await AsyncStorage.getItem('weeklyMuscleGroups');
+                if (savedData) {
+                    setWeeklyMuscleGroups(JSON.parse(savedData));
+                }
+            } catch (error) {
+                console.error('Error loading saved data:', error);
+            }
+        };
+        loadData();
+    }, []);
 
-
+    const saveDataLocally = async (data: WeeklyMuscleData) => {
+        try {
+            await AsyncStorage.setItem('weeklyMuscleGroups', JSON.stringify(data));
+        } catch (error) {
+            console.error('Error saving data locally:', error);
+        }
+    };
 
     const addMuscleGroup = () => {
         const setsNumber = Number(newSets);
@@ -223,46 +230,41 @@ export default function HomeScreen() {
             return;
         }
 
-        const weekLabel = getWeekLabel(selectedDate); // Use the label for the selected week
+        const weekLabel = getWeekLabel(selectedDate);
 
         setWeeklyMuscleGroups(prev => {
             const currentWeekData = prev[weekLabel] || [];
 
-            // Check if the muscle already exists for the current week
+            // Update sets if the muscle exists, otherwise add a new muscle
             const updatedWeekData = currentWeekData.map(item =>
                 item.muscle === selectedMuscle ? { ...item, sets: item.sets + setsNumber } : item
             );
 
-            // If muscle doesn't exist, add it
             if (!updatedWeekData.some(item => item.muscle === selectedMuscle)) {
                 updatedWeekData.push({ muscle: selectedMuscle, sets: setsNumber });
             }
 
-            return {
-                ...prev,
-                [weekLabel]: updatedWeekData,
-            };
-        });
+            const updatedData = { ...prev, [weekLabel]: updatedWeekData };
 
+            // Save the updated data locally
+            saveDataLocally(updatedData);
+
+            return updatedData;
+        });
         // Clear inputs
         setSelectedMuscle('');
         setNewSets('');
         setIsMusclePickerVisible(false);
     };
-
-
-
     const showDatePicker = () => {
         setShowPicker(true);
         setTempSelectedDate(selectedDate);
     };
-
     const deleteMuscleGroup = (muscle: string): void => {
         const updatedSets = workingSets.filter((item) => item.muscle !== muscle);
         setWorkingSets(updatedSets);
         saveMuscleGroups(updatedSets);
     };
-
     const onDateChange = (event: any, date: any) => {
         if (date) {
             setTempSelectedDate(date);
@@ -300,42 +302,27 @@ export default function HomeScreen() {
                     </Text>
                     <CustomBarChart data={barChartData} config={barChartConfig} />
                 </ThemedView>
-                <ThemedView style={styles.titleContainer}>
+                <ThemedView style={styles.container}>
                     <ThemedText type="title">Select Week: {weekLabel}</ThemedText>
-                    <View style={styles.buttonContainer}>
-                        <Button title="Select Date" onPress={showDatePicker} />
+                    <View style={styles.datePickerContainer}>
+                        <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
                     </View>
-                    {showPicker && (
-                        <View>
-                            {Platform.OS === 'web' ? (
-                                <input
-                                    type="date"
-                                    value={tempSelectedDate.toISOString().substring(0, 10)}
-                                    onChange={(e) => onDateChange(null, new Date(e.target.value))}
-                                    style={{ width: '100%', backgroundColor: 'white' }}
-                                />
-                            ) : (
-                                <DateTimePicker
-                                    value={tempSelectedDate}
-                                    mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    onChange={onDateChange}
-                                    style={{ width: '100%', backgroundColor: 'white' }}
-                                    textColor={'white'}
-                                />
-                            )}
-                            <Button title="Save Date" onPress={onSaveDate} />
-                        </View>
-                    )}
                 </ThemedView>
                 <ThemedView>
                     <ThemedText type="subtitle">Working Sets for Week Starting {weekLabel}</ThemedText>
                     <MuscleGroupList
-                        muscleGroups={muscleGroups}
-                        setMuscleGroups={setMuscleGroups} // Ensure this is passed correctly
+                        muscleGroups={weeklyMuscleGroups[weekLabel] || []}
+                        setMuscleGroups={(updatedGroups) => {
+                            setWeeklyMuscleGroups(prev => {
+                                const updatedData = { ...prev, [weekLabel]: updatedGroups };
+                                saveDataLocally(updatedData);
+                                return updatedData;
+                            });
+                        }}
                         selectedMuscleForChart={selectedMuscleForChart}
                         setSelectedMuscleForChart={setSelectedMuscleForChart}
                     />
+
 
                 </ThemedView>
                 <ThemedView style={styles.inputContainer}>
@@ -389,14 +376,12 @@ export default function HomeScreen() {
                                 Alert.alert('Error', 'Muscle group name cannot be empty.');
                                 return;
                             }
-
                             // Check if muscle already exists in the array of objects
                             const muscleExists = muscleGroups.some(group => group.muscle === trimmedMuscleGroup);
                             if (muscleExists) {
                                 Alert.alert('Error', 'This muscle group already exists.');
                                 return;
                             }
-
                             // Add new muscle group as an object
                             const newGroup = { muscle: trimmedMuscleGroup, sets: 0 };
                             const updatedGroups = [...muscleGroups, newGroup];

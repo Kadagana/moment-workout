@@ -143,5 +143,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#ccc',
     },
+    container: {
+        padding: 16,
+    },
+    datePickerContainer: {
+        marginTop: 10,
+    },
 });
 export default styles;
