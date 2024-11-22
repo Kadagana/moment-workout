@@ -14,6 +14,7 @@ import {
 import React, { useState, useEffect } from 'react';
 import { insertData, getWeekData } from '@/backend/async';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { Dimensions } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -21,41 +22,59 @@ import CustomDropdown from '@/components/CustomDropdown';
 import CustomBarChart from '@/components/CustomBarChart';
 import CustomLineChart from '@/components/CustomLineChart';
 import MuscleGroupList from '@/components/MuscleGroupList';
-import { Dimensions } from 'react-native';
 import styles from "@/styles/styles";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatePicker from "@/components/DatePicker";
+import DateRangePicker from "@/components/DateRangePicker";
 
-const screenWidth = Dimensions.get("window").width;
+const screenWidth = Dimensions.get('window').width;
+const getChartWidth = (range: string): number => {
+    switch (range) {
+        case '1_month':
+            return screenWidth; // Smallest width for a month
+        case '3_months':
+            return screenWidth * 3; // Medium width for three months
+        case '6_months':
+            return screenWidth * 4; // Larger width for six months
+        case '1_year':
+            return screenWidth * 6; // Largest width for a year
+        default:
+            return screenWidth;
+    }
+};
+
 const barChartConfig = {
-    backgroundColor: 'black',
-    backgroundGradientFrom: 'maroon',
-    backgroundGradientTo: 'white',
-    decimalPlaces: 0,
-    color: (opacity = 0.5) => `rgba(0, 0, 0, ${opacity})`,
-    labelColor: (opacity = 1) => `black`,
+    backgroundColor: 'maroon',
+    backgroundGradientFrom: '#800000', // Dark maroon
+    backgroundGradientTo: '#ff4d4d', // Light red
+    decimalPlaces: 0, // No decimal points
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // White text for better contrast
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // White labels
     style: {
         borderRadius: 16,
     },
     propsForBackgroundLines: {
-        stroke: '#e3e3e3',
+        stroke: '#ffcccc', // Light red background lines for subtlety
     },
 };
 
 const lineChartConfig = {
-    backgroundColor: 'green',
-    backgroundGradientFrom: 'black',
-    backgroundGradientTo: 'maroon',
+    backgroundColor: 'maroon',
+    backgroundGradientFrom: '#800000',
+    backgroundGradientTo: '#ff4d4d',
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // White text for better contrast
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     style: {
-        borderRadius: 18,
+        borderRadius: 16,
     },
     propsForDots: {
-        r: '8',
-        strokeWidth: '1',
-        stroke: '#ffa726',
+        r: '6',
+        strokeWidth: '2',
+        stroke: '#ff6666',
+    },
+    propsForBackgroundLines: {
+        stroke: '#ffcccc',
     },
 };
 
@@ -75,7 +94,12 @@ export default function HomeScreen() {
     const [newSets, setNewSets] = useState('');
     const [selectedMuscle, setSelectedMuscle] = useState(''); // For dropdown selection
     const [isMusclePickerVisible, setIsMusclePickerVisible] = useState(false); // Control Picker visibility
-    const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({ labels: [], datasets: [{ data: [] }] });
+    const [chartData, setChartData] = useState<{ labels: string[]; datasets: { data: number[] }[] }>({
+        labels: [],
+        datasets: [{ data: [] }],
+    });
+    const [selectedRange, setSelectedRange] = useState('1_month');
+    const [chartWidth, setChartWidth] = useState(screenWidth);
     const [selectedMuscleForChart, setSelectedMuscleForChart] = useState('');
     const [weeklyMuscleGroups, setWeeklyMuscleGroups] = useState<WeeklyMuscleData>({}); // Weekly muscle groups data
     const [muscleGroups, setMuscleGroups] = useState<WorkingSet[]>([
@@ -113,24 +137,59 @@ export default function HomeScreen() {
 
         setBarChartData({ labels, datasets: [{ data }] });
     };
+    const calculateDateRange = (range: string) => {
+        const now = new Date();
+        const endDate = new Date(); // Current date (the end of the range)
+        let startDate: Date | null = null;
 
+        switch (range) {
+            case '1_month':
+                startDate = new Date(now.setMonth(now.getMonth() - 1));
+                break;
+            case '3_months':
+                startDate = new Date(now.setMonth(now.getMonth() - 3));
+                break;
+            case '6_months':
+                startDate = new Date(now.setMonth(now.getMonth() - 6));
+                break;
+            case '1_year':
+                startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+                break;
+            default:
+                startDate = null; // Fallback for unexpected cases
+        }
+
+        return { startDate, endDate };
+    };
 
 
     const loadLineChartData = async (muscle: string) => {
+        const { startDate, endDate } = calculateDateRange(selectedRange);
         const labels: string[] = [];
         const setsData: number[] = [];
 
-        for (let i = 0; i < 20; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i * 7);
-            const weekLabel = getWeekLabel(date);
+        if (!startDate) {
+            console.error("No valid startDate found for the selected range.");
+            return;
+        }
+
+        // Generate all weeks between `startDate` and `endDate`
+        let currentDate = new Date(startDate);
+        const lastDate = endDate || new Date();
+
+        while (currentDate <= lastDate) {
+            const weekLabel = getWeekLabel(currentDate); // Use the existing getWeekLabel for calculations
+            const chartLabel = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // For chart
+            labels.push(chartLabel);
 
             const currentWeekData = weeklyMuscleGroups[weekLabel] || [];
-            const muscleData = currentWeekData.find(item => item.muscle === muscle);
+            const muscleData = currentWeekData.find((item) => item.muscle === muscle);
             const sets = muscleData ? muscleData.sets : 0;
 
-            labels.unshift(weekLabel);
-            setsData.unshift(sets);
+            setsData.push(sets); // Add 0 if no sets for the week
+
+            // Move to the next week
+            currentDate.setDate(currentDate.getDate() + 7);
         }
 
         setChartData({
@@ -138,28 +197,67 @@ export default function HomeScreen() {
             datasets: [
                 {
                     data: setsData,
-                    color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+                    color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // Example color
                 },
             ],
         });
     };
 
+    const fetchDataForRange = async (range: string) => {
+        const labels: string[] = [];
+        const datasets: { data: number[] } = { data: [] };
+
+        const { startDate, endDate } = calculateDateRange(range);
+
+        if (!startDate) {
+            return {
+                labels: [],
+                datasets: [{ data: [] }],
+            };
+        }
+
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            const weekLabel = getWeekLabel(currentDate); // Original week label for internal logic
+            const chartLabel = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // For display
+            labels.push(chartLabel);
+
+            const currentWeekData = weeklyMuscleGroups[weekLabel] || [];
+            const totalSets = currentWeekData.reduce((sum, item) => sum + item.sets, 0);
+            datasets.data.push(totalSets);
+
+            currentDate.setDate(currentDate.getDate() + 7); // Move to next week
+        }
+
+        return {
+            labels,
+            datasets: [datasets],
+        };
+    };
+
+
     useEffect(() => {
-        const weekLabel = getWeekLabel(selectedDate);
-        loadBarChartData(weekLabel);
-    }, [weeklyMuscleGroups, selectedDate]);
+        // Adjust chart width based on selected range
+        setChartWidth(getChartWidth(selectedRange));
+        // Logic to fetch and set data for the selected range
+        // Assume `fetchDataForRange` is a function that updates `chartData`
+        fetchDataForRange(selectedRange).then((data) => setChartData(data));
+    }, [selectedRange]);
+
+
+
 
     useEffect(() => {
         if (selectedMuscleForChart) {
             loadLineChartData(selectedMuscleForChart);
         }
-    }, [weeklyMuscleGroups, selectedMuscleForChart]);
+    }, [selectedRange, selectedMuscleForChart, weeklyMuscleGroups]);
 
     useEffect(() => {
-        if (selectedMuscleForChart) {
-            loadLineChartData(selectedMuscleForChart);
+        if (weekLabel) {
+            loadBarChartData(weekLabel);
         }
-    }, [selectedMuscleForChart, workingSets]);
+    }, [weekLabel, weeklyMuscleGroups]);
 
     useEffect(() => {
         const label = getWeekLabel(selectedDate);
@@ -167,36 +265,21 @@ export default function HomeScreen() {
         loadWeekData(label);
     }, [selectedDate]);
 
+
+
+
     const loadWeekData = async (week: string) => {
         try {
             getWeekData(week, (data: WorkingSet[]) => {
-                if (data.length > 0) {
-                    setWorkingSets(data);
-                } else {
-                    setWorkingSets([]);
-                }
-                loadBarChartData(data);
+                setWorkingSets(data.length > 0 ? data : []);
+                loadBarChartData(week); // Pass the weekLabel here
             });
         } catch (error) {
             console.error("Error loading week data:", error);
         }
     };
 
-    const saveMuscleGroups = async (updatedSets: any) => {
-        try {
-            await insertData(weekLabel, updatedSets);
-        } catch (error) {
-            console.error('Error saving muscle groups:', error);
-        }
-    };
 
-    const updateSet = (muscle: string, newSetCount: number): void => {
-        const updatedMuscleGroups = muscleGroups.map((item) =>
-            item.muscle === muscle ? { ...item, sets: newSetCount } : item
-        );
-        setMuscleGroups(updatedMuscleGroups);
-        saveMuscleGroups(updatedMuscleGroups);
-    };
     useEffect(() => {
         console.log('Selected Muscle:', selectedMuscle);
     }, [selectedMuscle]);
@@ -256,25 +339,6 @@ export default function HomeScreen() {
         setNewSets('');
         setIsMusclePickerVisible(false);
     };
-    const showDatePicker = () => {
-        setShowPicker(true);
-        setTempSelectedDate(selectedDate);
-    };
-    const deleteMuscleGroup = (muscle: string): void => {
-        const updatedSets = workingSets.filter((item) => item.muscle !== muscle);
-        setWorkingSets(updatedSets);
-        saveMuscleGroups(updatedSets);
-    };
-    const onDateChange = (event: any, date: any) => {
-        if (date) {
-            setTempSelectedDate(date);
-        }
-    };
-
-    const onSaveDate = () => {
-        setSelectedDate(tempSelectedDate);
-        setShowPicker(false);
-    };
 
     const openMusclePicker = () => {
         setIsMusclePickerVisible(true);
@@ -285,6 +349,14 @@ export default function HomeScreen() {
             <ParallaxScrollView headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }} headerImage={
                 <Image source={require('@/assets/images/caracal.jpg')} style={styles.reactLogo} />
             }>
+                <ThemedView style={styles.container}>
+                    <ThemedText type="title">Select Date Range</ThemedText>
+                    <DateRangePicker
+                        selectedRange={selectedRange}
+                        onChange={(range) => setSelectedRange(range)}
+                    />
+
+                </ThemedView>
                 <ThemedView style={styles.titleContainer}>
                     <ThemedText type="title">Select Muscle Group for Chart</ThemedText>
                     <CustomDropdown
@@ -292,9 +364,16 @@ export default function HomeScreen() {
                         selectedValue={selectedMuscleForChart}
                         onValueChange={setSelectedMuscleForChart}
                     />
-                    {selectedMuscleForChart && (
-                        <CustomLineChart data={chartData} config={lineChartConfig} />
+                    {selectedMuscleForChart && chartData.datasets[0].data.length > 0 ? (
+                        <CustomLineChart
+                            data={chartData}
+                            config={lineChartConfig}
+                            width={chartWidth}
+                        />
+                    ) : (
+                        <Text>Gains are waiting!</Text>
                     )}
+
                 </ThemedView>
                 <ThemedView style={styles.chartContainer}>
                     <Text style={styles.chartTitle}>
