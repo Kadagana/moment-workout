@@ -17,7 +17,7 @@ export default function TabTwoScreen() {
                 <ThemedText type="title">Exercise/Biomechanics Resources</ThemedText>
             </ThemedView>
             <ThemedText>This app includes example code to help you get started.</ThemedText>
-            <Collapsible title="File-based routing">
+            <Collapsible title="Research Articles">
                 <ThemedText>
                     This app has two screens:{' '}
                     <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
@@ -31,7 +31,7 @@ export default function TabTwoScreen() {
                     <ThemedText type="link">Learn more</ThemedText>
                 </ExternalLink>
             </Collapsible>
-            <Collapsible title="Android, iOS, and web support">
+            <Collapsible title="Fitness Influencers">
                 <ThemedText>
                     You can open this project on Android, iOS, and the web. To open the web version, press{' '}
                     <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
@@ -68,22 +68,6 @@ export default function TabTwoScreen() {
                 <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
                     <ThemedText type="link">Learn more</ThemedText>
                 </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Animations">
-                <ThemedText>
-                    This template includes an example of an animated component. The{' '}
-                    <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-                    the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText> library
-                    to create a waving hand animation.
-                </ThemedText>
-                {Platform.select({
-                    ios: (
-                        <ThemedText>
-                            The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-                            component provides a parallax effect for the header image.
-                        </ThemedText>
-                    ),
-                })}
             </Collapsible>
         </ParallaxScrollView>
     );
