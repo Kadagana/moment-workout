@@ -1,13 +1,54 @@
 import {StyleSheet} from "react-native";
 
 const styles = StyleSheet.create({
+    deleteModalContent: {
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+        alignItems: 'center',
+        alignSelf: 'center',
+        marginTop: '40%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    closeButton: {
+        color: '#007BFF',
+        fontSize: 16,
+        marginTop: 15,
+        textAlign: 'center',
+    },
+    dropdownItem: {
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+        width: '100%',
+        alignItems: 'center',
+    },
+    dropdownItemText: {
+        fontSize: 16,
+        color: '#000',
+    },
+    caracalImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'contain',
+    },
     deleteButtonContainer: {
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'red',
         paddingHorizontal: 20,
         borderRadius: 5,
-        height: '100%', // Match the height of the swipeable item
+        height: '100%',
     },
     muscleItemContainer: {
         padding: 10,
