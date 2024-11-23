@@ -113,12 +113,12 @@ export default function HomeScreen() {
 
     const getWeekLabel = (date: any): string => {
         const monday = new Date(date);
-        const day = monday.getDay();
-        const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
-        monday.setDate(diff);
-        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-        return monday.toLocaleDateString('en-US', options);
+        const day = monday.getDay(); // Get current day (0 = Sunday, 6 = Saturday)
+        const diff = monday.getDate() - day + (day === 0 ? -6 : 1); // Adjust to get Monday as the first day of the week
+        monday.setDate(diff); // Set the date to the calculated Monday
+        return monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // Return the formatted date
     };
+
     const handleDateChange = (date: Date) => {
         setSelectedDate(date);
         const weekLabel = getWeekLabel(date);
@@ -178,6 +178,7 @@ export default function HomeScreen() {
         const lastDate = endDate || new Date();
 
         while (currentDate <= lastDate) {
+            currentDate.setDate(currentDate.getDate() - 1); // Adjust the date by subtracting 1 day
             const weekLabel = getWeekLabel(currentDate); // Use the existing getWeekLabel for calculations
             const chartLabel = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // For chart
             labels.push(chartLabel);
@@ -189,7 +190,7 @@ export default function HomeScreen() {
             setsData.push(sets); // Add 0 if no sets for the week
 
             // Move to the next week
-            currentDate.setDate(currentDate.getDate() + 7);
+            currentDate.setDate(currentDate.getDate() + 8); // Add 8 days to compensate for the earlier subtraction
         }
 
         setChartData({
@@ -202,6 +203,7 @@ export default function HomeScreen() {
             ],
         });
     };
+
 
     const fetchDataForRange = async (range: string) => {
         const labels: string[] = [];
